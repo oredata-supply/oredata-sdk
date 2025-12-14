@@ -1,0 +1,49 @@
+# This file goes in the PUBLIC SDK repo: oredata-supply/oredata-sdk
+# Location: .github/workflows/publish.yml
+#
+# Triggers npm publish when a version tag (v*) is pushed.
+# Uses OIDC trusted publishing - no long-lived tokens needed!
+#
+# Prerequisites (one-time setup on npmjs.com):
+#   1. Go to https://www.npmjs.com/package/@oredata/sdk/access
+#   2. Under "Publishing access", click "Add a trusted publisher"
+#   3. Configure:
+#      - Repository: oredata-supply/oredata-sdk
+#      - Workflow: publish.yml
+#      - Environment: (leave blank for default)
+#   4. Save
+
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for OIDC authentication with npm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish with provenance
+        # --provenance enables OIDC attestation (proves this came from GitHub Actions)
+        # NPM_TOKEN still needed for authentication, but OIDC handles 2FA requirement
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
