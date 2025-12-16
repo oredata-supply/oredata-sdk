@@ -1,0 +1,52 @@
+# This file goes in the PUBLIC SDK repo: oredata-supply/oredata-sdk
+# Location: .github/workflows/publish.yml
+#
+# ⚠️  STATUS: BROKEN AS OF DECEMBER 2025
+#
+# npm changed their authentication system:
+# - Classic tokens were permanently revoked (Dec 9, 2025)
+# - Passkey-only 2FA is now enforced for new setups
+# - Passkeys require browser interaction, cannot be used in CI/CD
+#
+# CURRENT WORKAROUND: Publish locally after running release-sdk.sh
+#   cd packages/sdk && npm run build && npm publish --access public
+#
+# This workflow is kept for future use if npm adds CI/CD support for passkeys
+# or OIDC trusted publishing starts working properly.
+#
+# See: https://github.blog/changelog/2025-12-09-npm-classic-tokens-revoked-session-based-auth-and-cli-token-management-now-available/
+
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for OIDC authentication with npm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish with provenance
+        # --provenance enables OIDC attestation (proves this came from GitHub Actions)
+        # NOTE: This currently fails with EOTP error due to passkey 2FA requirements
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
